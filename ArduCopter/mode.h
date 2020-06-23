@@ -662,7 +662,8 @@ private:
     Vector3f orig_attitude;         // original vehicle attitude before flip
 
     enum class FlipState : uint8_t {
-        Start,
+        StartRise,
+        StartRoll,
         Roll,
         Pitch_A,
         Pitch_B,
