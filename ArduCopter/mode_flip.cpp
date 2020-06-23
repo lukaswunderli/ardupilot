@@ -128,7 +128,7 @@ void ModeFlip::run()
         throttle_out += FLIP_THR_INC;
 
         // after 1s move to next stage
-        if (((millis() - start_time_ms) > FLIP_RISETIME_MS) {
+        if ((millis() - start_time_ms) > FLIP_RISETIME_MS) {
             _state = FlipState::Recover;
         }
         break;
