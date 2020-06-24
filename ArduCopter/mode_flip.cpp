@@ -129,7 +129,7 @@ void ModeFlip::run()
 
         // after 1s move to next stage
         if ((millis() - start_time_ms) > FLIP_RISETIME_MS) {
-            _state = FlipState::Recover;
+            _state = FlipState::Abandon;
         }
         break;
 
