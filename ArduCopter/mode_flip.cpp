@@ -21,11 +21,11 @@
  *          FlipState::Recover (while copter is between -90deg and original target angle) : use earth frame angle controller to return vehicle to original attitude
  */
 
-#define FLIP_RISETIME_MS    1000    // time of throttle increase to rise before rolling
+#define FLIP_RISETIME_MS    2000    // time of throttle increase to rise before rolling
 #define FLIP_THR_INC        0.40f   // throttle increase during FlipState::Start stages (under 45deg lean angle)
 #define FLIP_THR_DEC        0.40f   // throttle decrease during FlipState::Roll stage (between 45deg ~ -90deg roll)
 #define FLIP_ROTATION_RATE  40000   // rotation rate request in centi-degrees / sec (i.e. 400 deg/sec)
-#define FLIP_TIMEOUT_MS     2500    // timeout after 2.5sec.  Vehicle will switch back to original flight mode
+#define FLIP_TIMEOUT_MS     4500    // timeout after 2.5sec.  Vehicle will switch back to original flight mode
 #define FLIP_RECOVERY_ANGLE 500     // consider successful recovery when roll is back within 5 degrees of original
 
 #define FLIP_ROLL_RIGHT      1      // used to set flip_dir
