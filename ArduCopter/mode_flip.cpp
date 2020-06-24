@@ -21,7 +21,7 @@
  *          FlipState::Recover (while copter is between -90deg and original target angle) : use earth frame angle controller to return vehicle to original attitude
  */
 
-#define FLIP_RISETIME_MS    500    // time of throttle increase to rise before rolling
+#define FLIP_RISETIME_MS    1000    // time of throttle increase to rise before rolling
 #define FLIP_THR_INC        0.40f   // throttle increase during FlipState::Start stages (under 45deg lean angle)
 #define FLIP_THR_DEC        0.40f   // throttle decrease during FlipState::Roll stage (between 45deg ~ -90deg roll)
 #define FLIP_ROTATION_RATE  40000   // rotation rate request in centi-degrees / sec (i.e. 400 deg/sec)
@@ -121,17 +121,22 @@ void ModeFlip::run()
     switch (_state) {
 
     case FlipState::StartRise:
-        // keep attitude
-        attitude_control->input_rate_bf_roll_pitch_yaw(0.0, 0.0, 0.0);
+        {
+            // keep attitude
+            attitude_control->input_rate_bf_roll_pitch_yaw(0.0, 0.0, 0.0);
+            float target_climb_rate = 1000.0;
+            pos_control->set_alt_target_from_climb_rate_ff(target_climb_rate, G_Dt, false);
+            pos_control->update_z_controller();
 
-        // increase throttle
-        throttle_out += FLIP_THR_INC;
+            // increase throttle
+            throttle_out += FLIP_THR_INC;
 
-        // after 1s move to next stage
-        if ((millis() - start_time_ms) > FLIP_RISETIME_MS) {
-            _state = FlipState::Abandon;
+            // after FLIP_RISETIME_MS move to next stage
+            if ((millis() - start_time_ms) > FLIP_RISETIME_MS) {
+                _state = FlipState::StartRoll;
+            }
+            break;
         }
-        break;
 
     case FlipState::StartRoll:
         // under 45 degrees request 400deg/sec roll or pitch
