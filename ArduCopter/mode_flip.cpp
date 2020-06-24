@@ -211,6 +211,10 @@ void ModeFlip::run()
 
         // check for successful recovery
         if (fabsf(recovery_angle) <= FLIP_RECOVERY_ANGLE) {
+            float target_climb_rate = 0.0;
+            pos_control->set_alt_target_from_climb_rate_ff(target_climb_rate, G_Dt, false);
+            pos_control->update_z_controller();
+
             // restore original flight mode
             if (!copter.set_mode(orig_control_mode, ModeReason::FLIP_COMPLETE)) {
                 // this should never happen but just in case
