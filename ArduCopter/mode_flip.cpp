@@ -15,15 +15,17 @@
  *          Pilot may manually exit flip by switching off ch7/ch8 or by moving roll stick to >40deg left or right
  *
  *      State machine approach:
- *          FlipState::Start (while copter is leaning <45deg) : roll right at 400deg/sec, increase throttle
+ *          FlipState::StartRise (for 0.5s) : increase throttle
+ *          FlipState::StartRoll (while copter is leaning <45deg) : roll right at 400deg/sec, increase throttle
  *          FlipState::Roll (while copter is between +45deg ~ -90) : roll right at 400deg/sec, reduce throttle
  *          FlipState::Recover (while copter is between -90deg and original target angle) : use earth frame angle controller to return vehicle to original attitude
  */
 
-#define FLIP_THR_INC        0.20f   // throttle increase during FlipState::Start stage (under 45deg lean angle)
-#define FLIP_THR_DEC        0.24f   // throttle decrease during FlipState::Roll stage (between 45deg ~ -90deg roll)
+#define FLIP_RISETIME_MS    2000    // time of throttle increase to rise before rolling
+#define FLIP_THR_INC        0.40f   // throttle increase during FlipState::Start stages (under 45deg lean angle)
+#define FLIP_THR_DEC        0.40f   // throttle decrease during FlipState::Roll stage (between 45deg ~ -90deg roll)
 #define FLIP_ROTATION_RATE  40000   // rotation rate request in centi-degrees / sec (i.e. 400 deg/sec)
-#define FLIP_TIMEOUT_MS     2500    // timeout after 2.5sec.  Vehicle will switch back to original flight mode
+#define FLIP_TIMEOUT_MS     4500    // timeout after 2.5sec.  Vehicle will switch back to original flight mode
 #define FLIP_RECOVERY_ANGLE 500     // consider successful recovery when roll is back within 5 degrees of original
 
 #define FLIP_ROLL_RIGHT      1      // used to set flip_dir
@@ -62,7 +64,7 @@ bool ModeFlip::init(bool ignore_checks)
     orig_control_mode = copter.control_mode;
 
     // initialise state
-    _state = FlipState::Start;
+    _state = FlipState::StartRise;
     start_time_ms = millis();
 
     roll_dir = pitch_dir = 0;
@@ -118,7 +120,25 @@ void ModeFlip::run()
     // state machine
     switch (_state) {
 
-    case FlipState::Start:
+    case FlipState::StartRise:
+        {
+            // keep attitude
+            attitude_control->input_rate_bf_roll_pitch_yaw(0.0, 0.0, 0.0);
+            float target_climb_rate = 1000.0;
+            pos_control->set_alt_target_from_climb_rate_ff(target_climb_rate, G_Dt, false);
+            pos_control->update_z_controller();
+
+            // increase throttle
+            throttle_out += FLIP_THR_INC;
+
+            // after FLIP_RISETIME_MS move to next stage
+            if ((millis() - start_time_ms) > FLIP_RISETIME_MS) {
+                _state = FlipState::StartRoll;
+            }
+            break;
+        }
+
+    case FlipState::StartRoll:
         // under 45 degrees request 400deg/sec roll or pitch
         attitude_control->input_rate_bf_roll_pitch_yaw(FLIP_ROTATION_RATE * roll_dir, FLIP_ROTATION_RATE * pitch_dir, 0.0);
 
@@ -191,6 +211,10 @@ void ModeFlip::run()
 
         // check for successful recovery
         if (fabsf(recovery_angle) <= FLIP_RECOVERY_ANGLE) {
+            float target_climb_rate = 0.0;
+            pos_control->set_alt_target_from_climb_rate_ff(target_climb_rate, G_Dt, false);
+            pos_control->update_z_controller();
+
             // restore original flight mode
             if (!copter.set_mode(orig_control_mode, ModeReason::FLIP_COMPLETE)) {
                 // this should never happen but just in case

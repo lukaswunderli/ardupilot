@@ -10,6 +10,7 @@ fi
 
 BINFILE="$1"
 ABINFILE="$2"
+LOGFILE="$3"
 
 [ -f "$BINFILE" ] || {
     echo "Can't find bin file"
@@ -20,6 +21,9 @@ sum=$(md5sum "$BINFILE" | cut -d' ' -f1)
 githash=$(git rev-parse HEAD)
 
 echo "githash $githash md5 $sum"
+echo "githash $githash md5 $sum" > "$LOGFILE"
+git describe
+git describe >> "$LOGFILE"
 
 cat <<EOF > "$ABINFILE"
 git version: $githash
